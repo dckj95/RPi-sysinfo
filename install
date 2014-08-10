@@ -1,0 +1,215 @@
+#!/usr/bin/python
+# -*- coding: utf-8 -*-
+
+import array
+import subprocess
+
+# ====== Functions ====== #
+## Get count of interfaces
+def getIFCount():
+	IFCountIn = int(raw_input("How many network interfaces do you have? (>1)\n"))
+	return IFCountIn
+
+## Get names of interfaces
+def getIFName(IFCount):
+	IFListIn = []
+	for x in range(0, IFCount):
+		IFName = raw_input("Enter name for interface " + str(x+1) + " (e.g. eth0):\n")
+                IFListIn.append(IFName)
+	return IFListIn
+
+## Print top of file
+def printTop():
+	formatTop = """#!/usr/bin/python
+# -*- coding: utf-8 -*-
+
+# Imports
+import subprocess
+import re
+
+# ====== Uptime ===== #
+uptimeIn = subprocess.check_output(["uptime"])
+uptimeMatch = re.search("p(.*)l", uptimeIn)
+uptime = uptimeMatch.group(1)
+
+uptime = re.sub(r"\s*", "", uptime, 1)
+uptime = uptime.rstrip()
+uptime = uptime[:-1]
+
+print "\\n====== Uptime ======"
+print uptime + "\\n"
+
+# ====== Processor ======
+clockMinIn = open ("/sys/devices/system/cpu/cpu0/cpufreq/scaling_min_freq", "r")
+clockCurIn = open ("/sys/devices/system/cpu/cpu0/cpufreq/scaling_cur_freq", "r")
+clockMaxIn = open ("/sys/devices/system/cpu/cpu0/cpufreq/scaling_max_freq", "r")
+procGovIn = open ("/sys/devices/system/cpu/cpu0/cpufreq/scaling_governor", "r")
+
+clockMin = int(clockMinIn.read().strip("\\n"))/1000
+clockCur = int(clockCurIn.read().strip("\\n"))/1000
+clockMax = int(clockMaxIn.read().strip("\\n"))/1000
+procGov = procGovIn.read().strip("\\n")
+
+clockMinIn.close()
+clockCurIn.close()
+clockMaxIn.close()
+procGovIn.close()
+
+print "====== Processor ======"
+print "Min: " + str(clockMin) + " MHz"
+print "Cur: " + str(clockCur) + " MHz"
+print "Max: " + str(clockMax) + " MHz"
+print "Gov: " + procGov + "\\n"
+
+# ====== Temperatures ======
+# CPU
+cpuIn = open ("/sys/class/thermal/thermal_zone0/temp", "r")
+cpuTemp = float(cpuIn.read().strip("\\n"))/1000
+cpuIn.close()
+
+# GPU
+gpuTemp = subprocess.check_output(["/opt/vc/bin/vcgencmd", "measure_temp"]).strip("\\n").replace("temp=", '').replace("\'C", '')
+
+print "====== Temperatures ======"
+print "CPU: " + str(cpuTemp) + "°C"
+print "GPU: " + gpuTemp + "°C\\n"
+
+# ====== Network ======
+"""
+	out.write(formatTop)
+
+## Print interfaces
+def printIF1(IFName):
+	formatIF1 = """# {IFName}
+try:
+        {IFName}In = subprocess.check_output(["ifconfig", "{IFName}0"], stderr=subprocess.STDOUT)
+
+        {IFName}IPMatch = re.search("addr:(.*) Bcast", {IFName}In)
+        {IFName}IP = {IFName}IPMatch.group(1)
+
+        {IFName}MACMatch = re.search("HWaddr (.*)", {IFName}In)
+        {IFName}MAC = {IFName}MACMatch.group(1)
+except:
+        {IFName}IP = "NA"
+        {IFName}MAC = "NA"
+
+"""
+	replace = {
+		"IFName":IFName
+	}
+	out.write(formatIF1.format(**replace))
+
+## Print external IP
+def printIF2():
+	formatIF2 = """# External IP
+try:
+	extIn = subprocess.check_output(["curl", "-s", "checkip.dyndns.org"])
+        extIPMatch = re.search(": (.*)</body>", extIn)
+        extIP = extIPMatch.group(1)
+except:
+        extIP = "NA"
+
+print "====== Network Information ======"
+"""
+	out.write(formatIF2)
+
+## Print output for interfaces
+def printIF3(IFName):
+	formatIF3 = """print "{IFName} -"
+print "IP: " + {IFName}IP
+print "MAC: " + {IFName}MAC + "\\n"
+"""
+	replace = {
+		"IFName":IFName
+        }
+        out.write(formatIF3.format(**replace))
+
+## Print bottom of file
+def printBottom():
+	formatBottom = """print "External IP: " + extIP + "\\n"
+
+# ====== Memory ======
+memIn = subprocess.check_output(["free", "-m"])
+usedMem = re.search("cache:(\s*)(\d{2,3})(\s*)", memIn).group(2)
+freeMem = re.search("cache:(\s*)(\d{2,3})(\s*)(\d{2,3})", memIn).group(4)
+swap = re.search("Swap:(\s*)(\d{2,3})(\s*)", memIn).group(2)
+
+print "====== Memory ======"
+print "Used: " + usedMem + " MB"
+print "Free: " + freeMem + " MB"
+print "Swap: " + swap + " MB\\n"
+
+# ====== Disk Usage ======
+diskIn = subprocess.check_output(["df", "-h"])
+diskHead = re.search("Filesystem(.*)", diskIn).group()
+diskRoot = re.search("rootfs(.*)", diskIn).group()
+diskBoot = re.search("/dev/mmcblk0p1(.*)", diskIn).group()
+
+print "====== Disk Usage ======"
+print diskHead
+print diskRoot
+print diskBoot + "\\n"
+"""
+	out.write(formatBottom)
+
+# ================== #
+#        MAIN        #
+# ================== #
+# Welcome
+print """
+# ========================================== #
+#                                            #
+#       Raspberry Pi sysinfo installer       #
+#                version 1.0                 #
+#                                            #
+# ========================================== #
+#                                            #
+#   Please answer the following questions    #
+#      to configure sysinfo for your Pi      #
+#                                            #
+# ========================================== #
+"""
+
+# Get network interface info
+IFCount = 0
+
+while (IFCount < 1):
+	IFCount = getIFCount()
+
+IFList = getIFName(IFCount)
+
+# Output
+out = open("/bin/sysinfo", "w")
+
+printTop()
+
+for IFName in IFList:
+	printIF1(IFName)
+
+printIF2()
+
+for IFName in IFList:
+	printIF3(IFName)
+
+printBottom()
+
+out.close()
+
+# Finish
+subprocess.call(["chmod", "777", "/bin/sysinfo"])
+print """
+# ========================================== #
+#                                            #
+#           Installation complete!           #
+#                                            #
+# ========================================== #
+#                                            #
+#         sysinfo can now be called          #
+#        from anywhere in the system         #
+#                                            #
+# ========================================== #
+#                                            #
+#        File location: /bin/sysinfo         #
+#                                            #
+# ========================================== #
+"""
