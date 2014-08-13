@@ -103,7 +103,7 @@ except:
 def printIF2():
 	formatIF2 = """# External IP
 try:
-	extIn = subprocess.check_output(["curl", "-s", "checkip.dyndns.org"])
+	extIn = subprocess.check_output(["curl", "-s", "216.146.43.70"])
         extIPMatch = re.search(": (.*)</body>", extIn)
         extIP = extIPMatch.group(1)
 except:
