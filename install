@@ -1,6 +1,19 @@
 #!/usr/bin/python
 # -*- coding: utf-8 -*-
 
+# ======================================= #
+#                                         #
+#               RPi-sysinfo               #
+#               version 1.0               #
+#                                         #
+#              Developed by:              #
+#               Daryl Chan                #
+#                                         #
+#            Fork Me on GitHub:           #
+#        https://github.com/dckj95        #
+#                                         #
+# ======================================= #
+
 import array
 import subprocess
 
