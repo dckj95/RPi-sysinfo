@@ -116,9 +116,8 @@ except:
 def printIF2():
 	formatIF2 = """# External IP
 try:
-	extIn = subprocess.check_output(["curl", "-s", "216.146.43.70"])
-        extIPMatch = re.search(": (.*)</body>", extIn)
-        extIP = extIPMatch.group(1)
+	extIn = subprocess.check_output(["curl", "-s", "http://icanhazip.com/"])
+        extIP = extIn.strip("\\n")
 except:
         extIP = "NA"
 
